@@ -1,0 +1,43 @@
+name: Build and Release
+
+# Bu işlem sadece GitHub'da yeni bir "Release" (Sürüm) oluşturduğunda çalışır
+on:
+  release:
+    types: [created]
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    name: Build for Linux
+    runs-on: ubuntu-latest
+    steps:
+      # 1. GitHub'daki kodlarını sanal makineye indirir
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. Ağ işlemleri için gerekli sistem kütüphanelerini yükler
+      - name: Install System Dependencies
+        run: sudo apt-get update && sudo apt-get install -y libclang-dev pkg-config build-essential
+
+      # 3. Rust dilini ve araçlarını kurar
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      # 4. Projeyi derler (Release modunda - Hızlı çalışması için)
+      # Dosyalar artık ana dizinde olduğu için ekstra ayara gerek yok!
+      - name: Build Project (Release Mode)
+        run: cargo build --release --verbose
+
+      # 5. Oluşan dosyanın ismini daha anlaşılır yapar
+      - name: Rename Binary
+        run: mv target/release/voidbridge voidbridge-linux-amd64
+
+      # 6. Dosyayı GitHub'daki Release sayfasına yükler
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: voidbridge-linux-amd64
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
